@@ -286,6 +286,6 @@ public class Bb implements Serializable {
             this.listeRolesSysteme.add(new SelectItem("GUIDE", "Guide touristique"));
             this.listeRolesSysteme.add(new SelectItem("POETE", "Poète Marocain 🇲🇦"));
         }
-        return this.listeRolesSysteme
+        return this.listeRolesSysteme;
     }
 }
