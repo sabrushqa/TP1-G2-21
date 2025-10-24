@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core">
+<h:head>
+    <h:outputStylesheet name="css/mycsslayout.css"/>
+    <h:outputScript name="js/script.js" target="head"/>
+    <title>Conversation LLM</title>
+</h:head>
+<h:body>
+    <f:view>
+
+        <h:messages errorStyle="color: red" showDetail="true" showSummary="false" globalOnly="true"/>
+
+        <h:form id="form">
+
+            <p>
+                <h:outputLabel for="rolesysteme" value="Rôle de l'API : "/>
+                <h:selectOneMenu id="rolesysteme" value="#{bb.roleSystemeCode}"
+                                 required="true" requiredMessage="Vous devez indiquer le rôle de l'API"
+                                 disabled="#{!bb.roleSystemeChangeable}">
+                    <f:selectItems value="#{bb.rolesSysteme}"/>
+                </h:selectOneMenu>
+                <h:message for="rolesysteme" errorStyle="color: red" />
+
+                <h:outputText value="  "/>
+                <h:commandButton value="Nouveau chat" action="#{bb.nouveauChat}" />
+            </p>
+
+            <h:panelGrid id="paneltotal" columns="2" columnClasses="topAligned,topAligned">
+
+                <h:panelGrid id="panelgauche" columns="1">
+
+                    <h:panelGrid id="questionetreponse" columns="1">
+                        <h:panelGroup>
+                            <h:outputText value="Question :"/>
+                            <button type="button" onclick="copyToClipboard('form:question')">Copier question</button>
+                            <button type="button" onclick="document.getElementById('form:question').value=''; document.getElementById('form:reponse').value=''">Effacer question et réponse</button>
+                        </h:panelGroup>
+                        <h:inputTextarea id="question" value="#{bb.question}" title="Question"
+                                         cols="50" rows="5"/>
+                        <h:commandButton value="Envoyer la question" action="#{bb.envoyer}"/>
+                        <h:panelGroup>
+                            <h:outputText value="Réponse :"/>
+                            <button type="button" onclick="copyToClipboard('form:reponse')">Copier réponse</button>
+                        </h:panelGroup>
+                        <h:inputTextarea id="reponse" value="#{bb.reponse}" title="Réponse"
+                                         cols="50" rows="15"/>
+                    </h:panelGrid>
+
+                    <h:panelGrid id="jsonrequete" columns="1">
+                        <h:panelGroup>
+                            <h:outputText value="JSON envoyé dans la requête :"/>
+                            <button type="button" onclick="copyToClipboard('form:requetejson')">Copier requête JSON</button>
+                        </h:panelGroup>
+                        <h:inputTextarea id="requetejson" value="#{bb.texteRequeteJson}"
+                                         rows="15" cols="50" readonly="true"
+                                         title="JSON de la requête"/>
+                    </h:panelGrid>
+
+                    <h:panelGrid id="jsonreponse" columns="1">
+                        <h:panelGroup>
+                            <h:outputText value="JSON retourné dans la réponse :"/>
+                            <button type="button" onclick="copyToClipboard('form:reponsejson')">Copier réponse JSON</button>
+                        </h:panelGroup>
+                        <h:inputTextarea id="reponsejson" value="#{bb.texteReponseJson}"
+                                         rows="15" cols="50" readonly="true"
+                                         title="JSON de la réponse"/>
+                    </h:panelGrid>
+                </h:panelGrid>
+
+                <h:panelGrid id="paneldroit" columns="1" style="vertical-align: top;">
+                    <h:panelGroup>
+                        <h:outputText value="Conversation :"/>
+                        <button type="button" onclick="copyToClipboard('form:conversation')">Copier conversation</button>
+                    </h:panelGroup>
+                    <h:inputTextarea id="conversation" rows="30" cols="50" readonly="true"
+                                     value="#{bb.conversation}" title="Conversation entière"/>
+                </h:panelGrid>
+
+            </h:panelGrid>
+        </h:form>
+    </f:view>
+</h:body>
+</html>
