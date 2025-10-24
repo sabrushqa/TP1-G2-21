@@ -281,10 +281,10 @@ public class Bb implements Serializable {
     public List<SelectItem> getRolesSysteme() {
         if (this.listeRolesSysteme == null) {
             this.listeRolesSysteme = new ArrayList<>();
-            this.listeRolesSysteme.add(new SelectItem("ASSISTANT", "Assistant"));
+            this.listeRolesSysteme.add(new SelectItem("ASSISTANT GEMINI", "Assistant"));
             this.listeRolesSysteme.add(new SelectItem("TRADUCTEUR", "Traducteur Anglais-Français"));
             this.listeRolesSysteme.add(new SelectItem("GUIDE", "Guide touristique"));
-            this.listeRolesSysteme.add(new SelectItem("POETE", "Poète Marocain 🇲🇦"));
+            this.listeRolesSysteme.add(new SelectItem("POETE", "Poète Marocain "));
         }
         return this.listeRolesSysteme;
     }
