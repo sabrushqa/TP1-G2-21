@@ -1,4 +1,4 @@
-package ma.emsi.tp1lakehal;
+package ma.emsi.tp1lakehal.Llm;
 
 import jakarta.enterprise.context.Dependent;
 import jakarta.ws.rs.client.*;
@@ -15,7 +15,7 @@ import java.io.Serializable;
  */
 @Dependent
 public class LlmClient implements Serializable {
-    // Nom de la variable d'environnement CONFIRMÉ : "GEMINI"
+    // Nom de la variable d'environnement CONFIRMÉ : "GEMINii"
     private static final String API_KEY_ENV_VAR = "GEMINI";
 
     // URL de l'API Gemini pour la génération de contenu (le modèle 'gemini-pro')

@@ -8,7 +8,7 @@
     </welcome-file-list>
     <filter>
         <filter-name>CharsetFilter</filter-name>
-        <filter-class>ma.emsi.tp1lakehal.CharsetFilter</filter-class>
+        <filter-class>ma.emsi.tp1lakehal.jsf.CharsetFilter</filter-class>
     </filter>
     <filter-mapping>
         <filter-name>CharsetFilter</filter-name>

@@ -7,6 +7,37 @@
     <h:outputStylesheet name="css/mycsslayout.css"/>
     <h:outputScript name="js/script.js" target="head"/>
     <title>Conversation LLM</title>
+    <style>
+        .debug-panel {
+            display: none;
+        }
+        .debug-panel.active {
+            display: block;
+        }
+        .btn-debug {
+            padding: 5px 10px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+    </style>
+    <script type="text/javascript">
+        function toggleDebugMode() {
+            var panels = document.querySelectorAll('.debug-panel');
+            var btn = document.getElementById('btnDebugMode');
+
+            panels.forEach(function(panel) {
+                panel.classList.toggle('active');
+            });
+
+            if (panels[0].classList.contains('active')) {
+                btn.textContent = 'Mode Normal';
+                btn.style.backgroundColor = '#4CAF50';
+            } else {
+                btn.textContent = 'Mode Debug';
+                btn.style.backgroundColor = '#2196F3';
+            }
+        }
+    </script>
 </h:head>
 <h:body>
     <f:view>
@@ -26,6 +57,11 @@
 
                 <h:outputText value="  "/>
                 <h:commandButton value="Nouveau chat" action="#{bb.nouveauChat}" />
+
+                <button type="button" id="btnDebugMode" class="btn-debug"
+                        onclick="toggleDebugMode()" style="background-color: #2196F3; color: white; border: none; border-radius: 4px;">
+                    Mode Debug
+                </button>
             </p>
 
             <h:panelGrid id="paneltotal" columns="2" columnClasses="topAligned,topAligned">
@@ -49,7 +85,7 @@
                                          cols="50" rows="15"/>
                     </h:panelGrid>
 
-                    <h:panelGrid id="jsonrequete" columns="1">
+                    <h:panelGrid id="jsonrequete" columns="1" styleClass="debug-panel">
                         <h:panelGroup>
                             <h:outputText value="JSON envoyé dans la requête :"/>
                             <button type="button" onclick="copyToClipboard('form:requetejson')">Copier requête JSON</button>
@@ -59,7 +95,7 @@
                                          title="JSON de la requête"/>
                     </h:panelGrid>
 
-                    <h:panelGrid id="jsonreponse" columns="1">
+                    <h:panelGrid id="jsonreponse" columns="1" styleClass="debug-panel">
                         <h:panelGroup>
                             <h:outputText value="JSON retourné dans la réponse :"/>
                             <button type="button" onclick="copyToClipboard('form:reponsejson')">Copier réponse JSON</button>

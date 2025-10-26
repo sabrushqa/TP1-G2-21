@@ -1,4 +1,4 @@
-package ma.emsi.tp1lakehal; // Utilisez votre package
+package ma.emsi.tp1lakehal.Exception; // Utilisez votre package
 
 /**
  * Exception personnalisée pour signaler une erreur lors de l'interaction avec le LLM

@@ -1,4 +1,4 @@
-package ma.emsi.tp1lakehal;
+package ma.emsi.tp1lakehal.Llm;
 
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
@@ -7,6 +7,7 @@ import jakarta.json.stream.JsonGenerator;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import ma.emsi.tp1lakehal.Exception.RequeteException;
 
 import java.io.Serializable;
 import java.io.StringReader;
@@ -101,10 +102,10 @@ public class JsonUtilPourGemini implements Serializable {
      * Crée la structure JSON initiale pour la première requête (inclut l'instruction système).
      * Structure correcte pour Gemini API:
      * {
-     *   "systemInstruction": {
-     *     "parts": [{"text": "..."}]
-     *   },
-     *   "contents": [...]
+     * "systemInstruction": {
+     * "parts": [{"text": "..."}]
+     * },
+     * "contents": [...]
      * }
      */
     private String creerRequeteJson(String systemRole, String question) {
@@ -132,7 +133,7 @@ public class JsonUtilPourGemini implements Serializable {
 
         // Crée le 'Content Object' (rôle + parts)
         JsonObject userContent = Json.createObjectBuilder()
-                .add("role", "user")
+                .add("role", "user") // CORRECTION : Rétablir le rôle "user" pour le premier message dans "contents"
                 .add("parts", Json.createArrayBuilder()
                         .add(userPart)
                         .build())

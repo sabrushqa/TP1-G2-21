@@ -1,4 +1,4 @@
-package ma.emsi.tp1lakehal;
+package ma.emsi.tp1lakehal.Llm;
 
 /**
  * Représente une interaction complète avec l'API LLM (Large Language Model).

@@ -1,4 +1,4 @@
-package ma.emsi.tp1lakehal;
+package ma.emsi.tp1lakehal.jsf;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 

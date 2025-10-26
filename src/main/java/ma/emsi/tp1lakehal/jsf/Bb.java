@@ -1,4 +1,4 @@
-package ma.emsi.tp1lakehal;
+package ma.emsi.tp1lakehal.jsf;
 
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
@@ -6,6 +6,8 @@ import jakarta.faces.model.SelectItem;
 import jakarta.faces.view.ViewScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import ma.emsi.tp1lakehal.Llm.JsonUtilPourGemini;
+import ma.emsi.tp1lakehal.Llm.LlmInteraction;
 
 import java.io.Serializable;
 import java.time.LocalTime;
@@ -13,64 +15,122 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Backing bean pour la page JSF index.xhtml.
+ * Portée view pour conserver l'état de la conversation qui dure pendant plusieurs requêtes HTTP.
+ * La portée view nécessite l'implémentation de Serializable (le backing bean peut être mis en mémoire secondaire).
+ */
 @Named
 @ViewScoped
 public class Bb implements Serializable {
 
-    // --- RÔLES SYSTÈME COMPLETS ---
+    // =================================================================================
+    // CONSTANTES - RÔLES SYSTÈME COMPLETS
+    // =================================================================================
+
     private static final String ROLE_ASSISTANT_COMPLET = """
             You are a helpful assistant. You help the user to find the information they need.
             If the user type a question, you answer it.
             """;
 
     private static final String ROLE_TRADUCTEUR_COMPLET = """
-            You are a translator. Your ONLY job is to translate text.
-            - If the user types in French, translate ONLY to English. Do not explain, just translate.
-            - If the user types in English, translate ONLY to French. Do not explain, just translate.
-            - If the input is a single word or short phrase (1-3 words), provide the translation AND 2-3 example sentences showing how to use it.
-            - Do NOT answer questions. Do NOT provide explanations. ONLY translate.
-            - Example: if user writes "c'est quoi flutter", translate to "what is flutter" (do not explain what Flutter is).
+            You are an interpreter. You translate from English to French and from French to English.
+            If the user type a French text, you translate it into English.
+            If the user type an English text, you translate it into French.
+            If the text contains only one to three words, give some examples of usage of these words in English.
             """;
 
     private static final String ROLE_GUIDE_COMPLET = """
             Your are a travel guide. If the user type the name of a country or of a town,
             you tell them what are the main places to visit in the country or the town
-            and you tell them the average price of a meal.
+            are you tell them the average price of a meal.
             """;
 
     private static final String ROLE_POETE_MAROCAIN = """
-            You are a Moroccan poet with a deep love for Moroccan culture, traditions, and landscapes.
+            You are a Moroccan poet who transforms everything into poetry.
             Your responses must ALWAYS be in the form of poetry (verses, rhymes, or free verse).
-            - Use vivid imagery inspired by Morocco: the Atlas mountains, the Sahara desert, Casablanca's ocean, mint tea, argan trees, souks, tagines, etc.
-            - Incorporate Arabic or Darija words naturally when appropriate (like "habibi", "shukran", "inchallah", "salam").
+            - Use vivid imagery inspired by Morocco: the Atlas mountains, the Sahara desert, Casablanca's ocean, mint tea, argan trees, souks, tagines, medinas, etc.
+            - Incorporate Arabic or Darija words naturally when appropriate (like "habibi", "shukran", "inchallah", "salam", "yallah", "choukran").
             - Your tone is warm, philosophical, and nostalgic.
-            - Even if the user asks a simple question, answer it poetically.
+            - Even if the user asks a simple question or makes a statement, transform it into beautiful poetry.
             - Keep responses concise (4-8 lines of poetry).
-            Example: If asked "how are you?", respond with a short poem about the morning sun over the medina.
+            - Every answer must be poetic, no exceptions.
+            Example: If asked "what is the weather?", respond with a poem about the sky, clouds, and Moroccan landscapes.
             """;
 
-    // --- INJECTIONS ---
-    @Inject
-    private JsonUtilPourGemini jsonUtil;
+    // =================================================================================
+    // INJECTIONS CDI
+    // =================================================================================
 
+    /**
+     * Contexte JSF. Utilisé pour qu'un message d'erreur s'affiche dans le formulaire.
+     */
     @Inject
     private FacesContext facesContext;
 
-    // --- PROPRIÉTÉS ---
-    private String roleSystemeCode;
-    private boolean roleSystemeChangeable = true;
-    private List<SelectItem> listeRolesSysteme;
-    private String question;
-    private String reponse;
-    private StringBuilder conversation = new StringBuilder();
-    private String texteRequeteJson;
-    private String texteReponseJson;
-    private boolean debug = false;
+    @Inject
+    private JsonUtilPourGemini jsonUtil;
 
-    // --- CONSTRUCTEUR ---
+    // =================================================================================
+    // PROPRIÉTÉS
+    // =================================================================================
+
+    /**
+     * Code du rôle système sélectionné (ASSISTANT, TRADUCTEUR, GUIDE, POETE).
+     */
+    private String roleSystemeCode;
+
+    /**
+     * Quand le rôle est choisi par l'utilisateur dans la liste déroulante,
+     * il n'est plus possible de le modifier (voir code de la page JSF), sauf si on veut un nouveau chat.
+     */
+    private boolean roleSystemeChangeable = true;
+
+    /**
+     * Liste de tous les rôles de l'API prédéfinis.
+     */
+    private List<SelectItem> listeRolesSysteme;
+
+    /**
+     * Dernière question posée par l'utilisateur.
+     */
+    private String question;
+
+    /**
+     * Dernière réponse de l'API OpenAI.
+     */
+    private String reponse;
+
+    /**
+     * La conversation depuis le début.
+     */
+    private StringBuilder conversation = new StringBuilder();
+
+    /**
+     * Texte JSON de la requête (pour debug).
+     */
+    private String texteRequeteJson;
+
+    /**
+     * Texte JSON de la réponse (pour debug).
+     */
+    private String texteReponseJson;
+
+    /**
+     * Mode debug activé/désactivé.
+     */
+    private boolean debug = true;
+
+    // =================================================================================
+    // CONSTRUCTEUR
+    // =================================================================================
+
+    /**
+     * Obligatoire pour un bean CDI (classe gérée par CDI), s'il y a un autre constructeur.
+     */
     public Bb() {
         // Initialisation du rôle par défaut
-        this.roleSystemeCode = "POETE";
+        this.roleSystemeCode = "ASSISTANT";
     }
 
     // =================================================================================
@@ -78,7 +138,10 @@ public class Bb implements Serializable {
     // =================================================================================
 
     /**
-     * Action pour envoyer la question de l'utilisateur au LLM.
+     * Envoie la question au serveur.
+     * Ajoute automatiquement le contexte temporel à chaque question.
+     *
+     * @return null pour rester sur la même page.
      */
     public String envoyer() {
         // Validation de la question
@@ -87,63 +150,76 @@ public class Bb implements Serializable {
             return null;
         }
 
-        // Début de conversation : envoyer le rôle système complet
-        if (conversation.isEmpty()) {
+        // Si la conversation n'a pas encore commencé, ajouter le rôle système au début
+        if (this.conversation.isEmpty()) {
             String roleComplet = getRoleSystemeComplet();
             jsonUtil.setSystemRole(roleComplet);
-            roleSystemeChangeable = false;
+            this.roleSystemeChangeable = false;
         }
 
-        // Appel à l'API LLM
+        // Enrichissement contextuel : ajout du moment de la journée
+        String questionAvecContexte = question + "\n[Information contextuelle: " + getMomentDeLaJournee() + "]";
+
+        // 🔹 Envoi de la requête au LLM Gemini
         try {
-            String questionAvecContexte = question + "\n[Information contextuelle: " + getMomentDeLaJournee() + "]";
-
             LlmInteraction interaction = jsonUtil.envoyerRequete(questionAvecContexte);
-
             this.reponse = interaction.reponseExtraite();
             this.texteRequeteJson = interaction.questionJson();
             this.texteReponseJson = interaction.reponseJson();
 
         } catch (Exception e) {
-            ajouterMessageErreur("Problème de connexion avec l'API du LLM",
-                    "Problème de connexion avec l'API du LLM : " + e.getMessage());
+            ajouterMessageErreur(
+                    "Problème de connexion avec l'API du LLM",
+                    "Problème de connexion avec l'API du LLM : " + e.getMessage()
+            );
             this.reponse = "ERREUR : Voir le message ci-dessus.";
             this.texteRequeteJson = jsonUtil.getTexteRequeteJson();
             this.texteReponseJson = "Erreur : " + e.getMessage();
             return null;
         }
 
+        // 🔹 Met à jour la conversation affichée à l'écran
         afficherConversation();
         return null;
     }
 
     /**
-     * Réinitialise complètement le chat.
+     * Pour un nouveau chat.
+     * Termine la portée view en retournant "index" (la page index.xhtml sera affichée après le traitement
+     * effectué pour construire la réponse) et pas null. null aurait indiqué de rester dans la même page (index.xhtml)
+     * sans changer de vue.
+     * Le fait de changer de vue va faire supprimer l'instance en cours du backing bean par CDI et donc on reprend
+     * tout comme au début puisqu'une nouvelle instance du backing va être utilisée par la page index.xhtml.
+     *
+     * @return "index"
      */
     public String nouveauChat() {
+        // Réinitialisation explicite de toutes les propriétés
         this.conversation = new StringBuilder();
         this.reponse = null;
         this.question = null;
         this.texteRequeteJson = null;
         this.texteReponseJson = null;
         this.roleSystemeChangeable = true;
-        this.roleSystemeCode = "POETE";
+        this.roleSystemeCode = "ASSISTANT";
         return "index";
     }
 
     /**
-     * Bascule le mode debug.
+     * Bascule le mode debug (activé/désactivé).
      */
     public void toggleDebug() {
         this.debug = !this.debug;
     }
 
     // =================================================================================
-    // MÉTHODES UTILITAIRES
+    // MÉTHODES UTILITAIRES PRIVÉES
     // =================================================================================
 
     /**
      * Retourne le texte complet du rôle système basé sur le code sélectionné.
+     *
+     * @return Le texte complet du rôle système.
      */
     private String getRoleSystemeComplet() {
         return switch (roleSystemeCode) {
@@ -151,12 +227,14 @@ public class Bb implements Serializable {
             case "TRADUCTEUR" -> ROLE_TRADUCTEUR_COMPLET;
             case "GUIDE" -> ROLE_GUIDE_COMPLET;
             case "POETE" -> ROLE_POETE_MAROCAIN;
-            default -> ROLE_TRADUCTEUR_COMPLET;
+            default -> ROLE_ASSISTANT_COMPLET;
         };
     }
 
     /**
      * Retourne le nom affiché du rôle système basé sur le code.
+     *
+     * @return Le nom du rôle pour l'affichage.
      */
     private String getRoleSystemeNom() {
         return switch (roleSystemeCode) {
@@ -164,30 +242,28 @@ public class Bb implements Serializable {
             case "TRADUCTEUR" -> "Traducteur Anglais-Français";
             case "GUIDE" -> "Guide touristique";
             case "POETE" -> "Poète Marocain";
-            default -> "Traducteur Anglais-Français";
+            default -> "Assistant";
         };
     }
 
     /**
-     * Met à jour la zone de conversation avec la dernière interaction.
+     * Pour afficher la conversation dans le textArea de la page JSF.
+     * N'affiche QUE les échanges User/Assistant (le rôle système n'apparaît pas ici).
      */
     private void afficherConversation() {
-        if (this.conversation.isEmpty()) {
-            this.conversation.append("* Rôle Système (Initial): ")
-                    .append(getRoleSystemeNom())
-                    .append("\n")
-                    .append(getRoleSystemeComplet())
-                    .append("\n\n");
-        }
-        this.conversation.append("* User:\n")
+        // Ajouter uniquement l'échange question/réponse
+        this.conversation.append("== User:\n")
                 .append(question)
-                .append("\n\n* Serveur:\n")
+                .append("\n\n== Assistant:\n")
                 .append(reponse)
-                .append("\n\n");
+                .append("\n\n")
+                .append("─────────────────────────────────────\n\n");
     }
 
     /**
-     * Détermine le moment de la journée pour enrichir le contexte.
+     * Détermine le moment de la journée pour enrichir le contexte de la question.
+     *
+     * @return Une chaîne décrivant le moment de la journée avec l'heure locale.
      */
     private String getMomentDeLaJournee() {
         LocalTime now = LocalTime.now();
@@ -204,7 +280,10 @@ public class Bb implements Serializable {
     }
 
     /**
-     * Ajoute un message d'erreur au contexte JSF.
+     * Ajoute un message d'erreur au contexte JSF pour l'affichage dans le formulaire.
+     *
+     * @param resume Résumé de l'erreur.
+     * @param detail Détails de l'erreur.
      */
     private void ajouterMessageErreur(String resume, String detail) {
         FacesMessage message = new FacesMessage(FacesMessage.SEVERITY_ERROR, resume, detail);
@@ -239,6 +318,11 @@ public class Bb implements Serializable {
         return reponse;
     }
 
+    /**
+     * setter indispensable pour le textarea.
+     *
+     * @param reponse la réponse à la question.
+     */
     public void setReponse(String reponse) {
         this.reponse = reponse;
     }
@@ -277,15 +361,21 @@ public class Bb implements Serializable {
 
     /**
      * Retourne la liste des rôles système disponibles pour le menu déroulant.
+     * Vous pouvez évidemment écrire ces rôles dans la langue que vous voulez.
+     *
+     * @return Liste des SelectItem pour la liste déroulante.
      */
     public List<SelectItem> getRolesSysteme() {
         if (this.listeRolesSysteme == null) {
+            // Génère les rôles de l'API prédéfinis
             this.listeRolesSysteme = new ArrayList<>();
-            this.listeRolesSysteme.add(new SelectItem("ASSISTANT GEMINI", "Assistant"));
+            // 1er argument : le CODE du rôle, 2ème argument : le LIBELLÉ du rôle
+            this.listeRolesSysteme.add(new SelectItem("ASSISTANT", "Assistant"));
             this.listeRolesSysteme.add(new SelectItem("TRADUCTEUR", "Traducteur Anglais-Français"));
             this.listeRolesSysteme.add(new SelectItem("GUIDE", "Guide touristique"));
-            this.listeRolesSysteme.add(new SelectItem("POETE", "Poète Marocain "));
+            this.listeRolesSysteme.add(new SelectItem("POETE", "Poète Marocain"));
         }
+
         return this.listeRolesSysteme;
     }
 }
